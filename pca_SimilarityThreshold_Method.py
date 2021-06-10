@@ -23,7 +23,7 @@ from sklearn.preprocessing import LabelEncoder
 
 start_time = time.time()
 
-a= pd.read_csv(r'C:\Users\baibcf\Desktop\newDataFileMC_11.csv', error_bad_lines=False, sep=',', header = 0)
+a= pd.read_csv(r'C:\baibcf\Desktop\newDataFileMC_11.csv', error_bad_lines=False, sep=',', header = 0)
 
 df=pd.DataFrame(data=a, columns=['PcbID','TimeDone','McID','CountPCB','DeviceID','Program','CycleTime','NumComp','NumBlocks','NumErrors','OrderNo','Operation','Lane','SerializedID','VariantID','InsertDate','ItemProcessDataId'])
 
