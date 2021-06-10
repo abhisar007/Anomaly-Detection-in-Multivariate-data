@@ -46,7 +46,7 @@ from keras.utils import plot_model
 
 start_time = time.time()
 
-a= pd.read_csv(r'C:\abhisar_thesis\newDataFileMC_11.csv', error_bad_lines=False, sep=',', header = 0)
+a= pd.read_csv(r'C:\abhisar\newDataFileMC.csv', error_bad_lines=False, sep=',', header = 0)
 
 df=pd.DataFrame(data=a, columns=['PcbID','TimeDone','McID','CountPCB','DeviceID','Program','CycleTime','NumComp','NumBlocks','NumErrors','OrderNo','Operation','Lane','SerializedID','VariantID','InsertDate','ItemProcessDataId'])
 
@@ -379,5 +379,5 @@ print ('Cross validated f1_score for logistic regression: {}'.format(np.mean(cro
 
 #test_score.to_csv(r'C:\Users\baibcf\Desktop\result_data\similarityAllFeatures.csv') 
 
-updated_testScore_df.to_csv(r'C:\abhisar_thesis\LSTMwithAnomaly.csv') 
-test_score.to_csv(r'C:\abhisar_thesis\testScoreThreshold.csv') 
+updated_testScore_df.to_csv(r'C:\abhisar\LSTMwithAnomaly.csv') 
+test_score.to_csv(r'C:\abhisar\testScoreThreshold.csv') 
