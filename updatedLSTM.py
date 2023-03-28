@@ -20,7 +20,8 @@ from matplotlib import pyplot
 from statsmodels.graphics.gofplots import qqplot
 from scipy.stats import chisquare
 from scipy.stats import shapiro 
-import time 
+import time
+from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import LabelEncoder
 plt.style.use('ggplot')
 
@@ -42,10 +43,14 @@ from keras.layers import Dense
 from keras.layers import RepeatVector
 from keras.layers import TimeDistributed
 from keras.utils import plot_model
+from keras.callbacks import EarlyStopping
+from keras.callbacks import ModelCheckpoint
+from keras.models import load_model
 
-
+# record start time for total runtime calculation
 start_time = time.time()
 
+# read data from csv
 a= pd.read_csv(r'C:\abhisar\newDataFileMC.csv', error_bad_lines=False, sep=',', header = 0)
 
 df=pd.DataFrame(data=a, columns=['PcbID','TimeDone','McID','CountPCB','DeviceID','Program','CycleTime','NumComp','NumBlocks','NumErrors','OrderNo','Operation','Lane','SerializedID','VariantID','InsertDate','ItemProcessDataId'])
@@ -58,6 +63,7 @@ c=df.dropna()
 #label encoding
 c=c.drop_duplicates()
 
+# encode label non numeric data points
 labelencoder=LabelEncoder()
 c['Operation'] = labelencoder.fit_transform(c['Operation'])
 
@@ -68,7 +74,7 @@ testingSeries = data.set_index('TimeDone')
 
 
 #..............................................................................    
-#..............................................................................    
+# Convert time to unix standard .................................................    
 unixtimestamp=[]
 
 for i in data['TimeDone']:
@@ -97,26 +103,18 @@ plt.show()
 
 testingSeries["TackTime"]=np.array(tackTime)
 #..............................................................................
-
+# data normalization and standardization
 def min_max_scaler(data):   
     mm_scaler = preprocessing.MinMaxScaler(feature_range=(0, 1))
     #data= mm_scaler.fit_transform(data)
     data = pd.DataFrame(mm_scaler.fit_transform(data), index=data.index, columns=data.columns)
     return data
 
-from sklearn.preprocessing import StandardScaler
 
 def standard_scalar(data):
     scaler = StandardScaler()  
     data = pd.DataFrame(scaler.fit_transform(data), index=data.index, columns=data.columns)
     return data
-
-
-
-#normalized_testingSeries= standard_scalar(testingSeries)
-
-#normalized_testingSeries=normalized_testingSeries.values
-#print(normalized_testingSeries)
 
 #for testing......................................................
 train_size = int(len(testingSeries) * 0.75)
@@ -145,38 +143,14 @@ TIME_STEPS = 30
 
 # reshape to [samples, time_steps, n_features]
 
+# prepare data to fit as LSTM input
 X_train= create_dataset(train,TIME_STEPS)
 X_test= create_dataset(test,TIME_STEPS)
 
 print(X_train.shape)
 
-
-
 #Autoencoders implementation
-
 model = Sequential()
-
-#model.add(LSTM(units=256, input_shape=(X_train.shape[1], X_train.shape[2]), return_sequences=True))
-#model.add(Dropout(rate=0.4))
-#model.add(LSTM(units=128, input_shape=(X_train.shape[1], X_train.shape[2]), return_sequences=True))
-#model.add(Dropout(rate=0.4))
-#model.add(LSTM(units=64, input_shape=(X_train.shape[1], X_train.shape[2]), return_sequences=True))
-#model.add(Dropout(rate=0.4))
-#model.add(LSTM(units=8, input_shape=(X_train.shape[1], X_train.shape[2]), return_sequences=False))
-#model.add(Dropout(rate=0.4))
-#
-#model.add(RepeatVector(n=X_train.shape[1]))
-#
-##ENCODER ENDS AND DECODER STARTS
-#
-#model.add(LSTM(units=64, return_sequences=True))
-#model.add(Dropout(rate=0.4))
-#model.add(LSTM(units=128, return_sequences=True))
-#model.add(Dropout(rate=0.4))
-#model.add(LSTM(units=256, return_sequences=True))
-#model.add(Dropout(rate=0.4))
-#model.add(TimeDistributed(Dense(units=X_train.shape[2])))
-
 
 model.add(LSTM(units=512, input_shape=(X_train.shape[1], X_train.shape[2]), return_sequences=True))
 model.add(Dropout(rate=0.4))
@@ -186,7 +160,6 @@ model.add(LSTM(units=64, input_shape=(X_train.shape[1], X_train.shape[2]), retur
 model.add(Dropout(rate=0.4))
 model.add(LSTM(units=32, input_shape=(X_train.shape[1], X_train.shape[2]), return_sequences=False))
 model.add(Dropout(rate=0.4))
-
 
 model.add(RepeatVector(n=X_train.shape[1]))
 
@@ -199,16 +172,9 @@ model.add(Dropout(rate=0.4))
 model.add(TimeDistributed(Dense(units=X_train.shape[2])))
 
 
-
-from keras.callbacks import EarlyStopping
-from keras.callbacks import ModelCheckpoint
-from keras.models import load_model
-
 # early stopping
 earlyStop = EarlyStopping(monitor='val_loss', mode='min',verbose=1, patience=50)
 modCheck = ModelCheckpoint(r'C:\abhisar_thesis\best_model.h5', monitor='val_loss', mode='min', verbose=1, save_best_only=True)
-
-
 
 
 model.compile(loss='mae', optimizer='adam')
@@ -221,11 +187,12 @@ history = model.fit(X_train, X_train,epochs=4000,batch_size=32,validation_split=
 saved_model = load_model(r'C:\abhisar_thesis\best_model.h5')
 
 
+#prediction step
 X_train_pred = saved_model.predict(X_train)
-
 
 train_mae_loss = np.mean(np.abs(X_train_pred, X_train), axis=1)
 
+#plot loss
 plt.plot(train_mae_loss)
 plt.show()
 
@@ -256,8 +223,6 @@ test_score['loss'] = accumulated_test_loss
 test_score['threshold'] = THRESHOLD
 test_score['anomaly'] = test_score.loss > test_score.threshold
 anomalies = test_score [test_score.anomaly == True]
-
-
 
 
 plt.scatter(test_score.index,test_score.loss, label='loss',color=sns.color_palette()[3],s=10)
@@ -318,9 +283,6 @@ plt.show()
 updated_testScore_df=pd.concat([test_copy, test_score['anomaly']], axis=1)
 updated_testScore_df=updated_testScore_df.dropna()
 
-
-
-
 evaluationDataFrame=updated_testScore_df
 
 X=evaluationDataFrame.drop(columns=['anomaly'])
@@ -329,11 +291,6 @@ y=evaluationDataFrame['anomaly']
 
 y=labelencoder.fit_transform(y)
 y=pd.DataFrame(y,columns=['anomaly'])
-#from sklearn.preprocessing import LabelEncoder
-#
-#label_encoder = LabelEncoder()
-# 
-#y = label_encoder.fit_transform(y)
 
 k=1
 
@@ -377,7 +334,6 @@ print ('Cross validated recall score for logistic regression: {}'.format(np.mean
 print ('Cross validated precision score for logistic regression: {}'.format(np.mean(cross_val_precision)))
 print ('Cross validated f1_score for logistic regression: {}'.format(np.mean(cross_val_f1_score)))
 
-#test_score.to_csv(r'C:\Users\baibcf\Desktop\result_data\similarityAllFeatures.csv') 
-
+#generate output csv with respective anomaly label
 updated_testScore_df.to_csv(r'C:\abhisar\LSTMwithAnomaly.csv') 
 test_score.to_csv(r'C:\abhisar\testScoreThreshold.csv') 
