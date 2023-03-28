@@ -184,7 +184,7 @@ model.summary()
 history = model.fit(X_train, X_train,epochs=4000,batch_size=32,validation_split=0.2,verbose=0,shuffle=False,callbacks=[earlyStop,modCheck])
 
 # load the saved model
-saved_model = load_model(r'C:\abhisar_thesis\best_model.h5')
+saved_model = load_model(r'C:\abhisar_ws_job\best_model.h5')
 
 
 #prediction step
